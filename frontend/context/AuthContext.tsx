@@ -24,12 +24,29 @@ export const AuthProvider = ({ children }: any) => {
         }
 
         if (token && userData) {
-          setUser(JSON.parse(userData));
+          // 🛡️ [FIXED]: ডেটা করাপ্ট থাকলে বা টোকেন এক্সপায়ার হলে যেন অ্যাপ ক্র্যাশ না করে
+          try {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+          } catch (parseError) {
+            console.log("Corrupted user data, clearing storage...");
+            // ডেটা করাপ্ট থাকলে নিজে থেকেই স্টোরেজ ক্লিন করে দেবে (অ্যাপ ডিলিট করার দরকার নেই!)
+            if (Platform.OS === 'web') {
+              localStorage.removeItem('userToken');
+              localStorage.removeItem('userData');
+            } else {
+              await SecureStore.deleteItemAsync('userToken');
+              await SecureStore.deleteItemAsync('userData');
+            }
+            setUser(null);
+          }
         }
       } catch (error) {
         console.log("Error loading user", error);
+      } finally {
+        // 🛡️ [FIXED]: finally-ব্লকে setIsLoading দেওয়া হলো, যাতে কোনো এরর হলেও লোডিং স্পিনার আটকে না থাকে
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     checkUser();
   }, []);
