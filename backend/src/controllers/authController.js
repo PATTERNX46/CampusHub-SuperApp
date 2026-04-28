@@ -14,12 +14,33 @@ exports.registerUser = async (req, res) => {
 
   try {
     // 👇 [NEW LOGIC] Strict Student Email Verification
-    if (roles && roles.includes('student')) {
-      const isInstituteEmail = email.endsWith('.edu') || email.endsWith('.ac.in') || email.includes('institute') || email.includes('rcciit');
-      if (!isInstituteEmail) {
-        return res.status(400).json({ message: "Students must use a verified institute email ID (e.g. @rccinstitute.org)" });
-      }
-    }
+    // 👇 [NEW LOGIC] Ultimate Global Student Email Verification
+if (roles && roles.includes('student')) {
+  const userEmail = email.toLowerCase();
+  
+  // পৃথিবীর প্রায় সব কলেজ এবং তোমাদের কলেজের সব ডোমেইন লিস্ট
+  const validCollegeDomains = [
+    '.ac.in',                // ভারতের বেশিরভাগ কলেজ
+    '.edu.in',               // ভারতের এডুকেশনাল ইনস্টিটিউট
+    '.edu',                  // গ্লোবাল এডুকেশনাল ইনস্টিটিউট
+    '.ac.uk',                // ইউকে (UK) এর কলেজ
+    '.ac.bd',                // বাংলাদেশের কলেজ
+    '.edu.bd',               // বাংলাদেশের এডুকেশনাল ইনস্টিটিউট
+    '@rccinstitute.org',     // তোমাদের BCA/BSc ডোমেইন
+    '@rccinstitute.org.in',  // তোমাদের অল্টারনেট ডোমেইন
+    '@rcciit.org.in'         // 👈 [NEW] তোমাদের CSE/BTech ডোমেইন
+  ];
+  
+  // চেক করছে ইউজারের ইমেইলটা ওপরের লিস্টের কোনো একটার সাথে মিলছে কি না
+  const isInstituteEmail = validCollegeDomains.some(domain => userEmail.endsWith(domain));
+  
+  if (!isInstituteEmail) {
+    return res.status(400).json({ 
+      message: "Access Denied! Students must use a valid college/institute email ID (e.g., ends with .ac.in, .edu.in, or @rcciit.org.in)" 
+    });
+  }
+}
+// 👆 [NEW LOGIC ENDS]
     // 👆 [NEW LOGIC ENDS]
 
     const userExists = await User.findOne({ email });
