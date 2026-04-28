@@ -37,7 +37,7 @@ exports.registerUser = async (req, res) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Your OTP for Campus Super App',
+        subject: 'Your OTP for Orbito  App',
         message: `Your OTP is ${otp}. It will expire in 10 minutes.`
       });
       res.status(201).json({ message: 'OTP sent to email', userId: user._id });

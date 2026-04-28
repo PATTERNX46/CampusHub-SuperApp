@@ -120,7 +120,7 @@ export default function HomeScreen() {
 
       {/* 🚀 Explore Categories Grid (Filtered) */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Explore Campus</Text>
+        <Text style={styles.sectionTitle}>Explore  Orbito</Text>
         
         {filteredCategories.length > 0 ? (
           <View style={styles.gridContainer}>

@@ -1,7 +1,7 @@
 {
   "name": "super-app-backend",
   "version": "1.0.0",
-  "description": "Backend for Campus Super App",
+  "description": "Backend for Orbito Super App",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

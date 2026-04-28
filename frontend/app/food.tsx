@@ -45,10 +45,10 @@ export default function FoodScreen() {
   const filteredData = useMemo(() => {
     const currentSource = activeTab === 'Home' ? 'Home' : 'Restaurant';
     
-    // ১. সোর্স অনুযায়ী ফিল্টার
+    // ১. সোর্স অনুযায়ী ফিল্টার
     let result = foods.filter(item => (item.foodSource || 'Home') === currentSource);
 
-    // 🛡️ [NEW RULE] নিজের খাবার নিজে দেখবে না (যদি সে অ্যাডমিন না হয়)
+    // 🛡️ [NEW RULE] নিজের খাবার নিজে দেখবে না (যদি সে অ্যাডমিন না হয়)
     if (!isAdmin) {
       result = result.filter(item => {
         const sellerId = item.sellerId?._id || item.sellerId;
@@ -65,9 +65,10 @@ export default function FoodScreen() {
     
     return result;
   }, [foods, activeTab, typeFilter, mealFilter, searchQuery, user?._id]); 
+
   const handleWhatsAppOrder = (phone: string, itemName: string, sellerName: string) => {
     const contactNumber = phone.length === 10 ? `91${phone}` : phone; 
-    const message = `Hi ${sellerName}, I am from ${user?.college || 'Campus'}. I saw your listing on Campus Super App and I want to order: *${itemName}*. Please confirm!`;
+    const message = `Hi ${sellerName}, I am from ${user?.college || 'Orbito'}. I saw your listing on  Orbito App and I want to order: *${itemName}*. Please confirm!`;
     const url = `whatsapp://send?phone=${contactNumber}&text=${encodeURIComponent(message)}`;
     Linking.canOpenURL(url).then(supported => {
       if (supported) Linking.openURL(url);
@@ -89,7 +90,7 @@ export default function FoodScreen() {
                 { text: "Cancel" },
                 { text: "Delete", style: "destructive", onPress: async () => {
                     await api.delete(`/foods/${item._id}`);
-                    fetchFoods(); // ডিলিট হওয়ার পর লিস্ট রিফ্রেশ হবে
+                    fetchFoods(); // ডিলিট হওয়ার পর লিস্ট রিফ্রেশ হবে
                 }}
               ]);
             }}
@@ -172,8 +173,8 @@ export default function FoodScreen() {
         />
       )}
 
-      {/* 🚀 FAB: Hidden for Students and Admin can add both */}
-      {((activeTab === 'Home' && userRole !== 'student') || isAdmin) && (
+      {/* 🚀 FAB: Hidden for Students and Teachers, Admin can add both */}
+      {((activeTab === 'Home' && userRole !== 'student' && userRole !== 'teacher') || isAdmin) && (
         <TouchableOpacity style={styles.fab} onPress={() => router.push('/add-food' as any)}>
           <Ionicons name="add" size={32} color="#ffffff" />
         </TouchableOpacity>

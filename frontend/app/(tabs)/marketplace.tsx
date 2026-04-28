@@ -167,7 +167,7 @@ export default function MarketplaceScreen() {
       {/* ... Header and Search code remains same ... */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Campus <Text style={{color: '#4361EE'}}>Market</Text></Text>
+          <Text style={styles.headerTitle}> Orbito <Text style={{color: '#4361EE'}}>Market</Text></Text>
           <View style={styles.locationRow}>
             <Ionicons name="location" size={16} color="#F72585" />
             <Text style={styles.headerSubtitle} numberOfLines={1}> {locationText}</Text>

@@ -69,13 +69,13 @@ export default function OcrScannerScreen() {
   };
 
   // 📄 ৩. PDF বানানো এবং প্রোফাইলে সেভ করা (আগের মতোই আছে)
-  // 📄 ৩. PDF বানানো (CampusHub Watermark সহ)
+  // 📄 ৩. PDF বানানো ( OrbitoHub Watermark সহ)
   const generateAndSavePDF = async () => {
     if (!extractedText) return Alert.alert('Error', 'No text available to convert to PDF.');
 
     setIsGeneratingPdf(true);
     try {
-      // 🚀 [NEW] CSS দিয়ে CampusHub এর জলছাপ (Watermark) যোগ করা হয়েছে
+      // 🚀 [NEW] CSS দিয়ে  OrbitoHub এর জলছাপ (Watermark) যোগ করা হয়েছে
       const htmlContent = `
         <html>
           <head>
@@ -95,11 +95,11 @@ export default function OcrScannerScreen() {
             </style>
           </head>
           <body style="font-family: Arial, sans-serif; padding: 40px; color: #1E293B;">
-            <div class="watermark">CampusHub</div>
+            <div class="watermark"> OrbitoHub</div>
             <h1 style="color: #4361EE; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px;">Scanned Note</h1>
             <p style="font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${extractedText.replace(/\n/g, '<br>')}</p>
             <footer style="margin-top: 50px; font-size: 12px; color: #94A3B8; text-align: center;">
-              Generated via Campus Super App - AI Scanner
+              Generated via  Orbito Super App - AI Scanner
             </footer>
           </body>
         </html>

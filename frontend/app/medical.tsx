@@ -157,9 +157,9 @@ export default function MedicalScreen() {
           </View>
         </View>
 
-        {/* 🏫 Campus Security (Restored Original UI) */}
+        {/* 🏫  Orbito Security (Restored Original UI) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Campus Helpline</Text>
+          <Text style={styles.sectionTitle}> Orbito Helpline</Text>
           <View style={styles.campusCard}>
             <View style={styles.campusRow}>
               <View style={styles.iconBox}>

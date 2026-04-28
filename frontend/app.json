@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": " Orbito",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rajdchatteejee.frontend"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fff998d4-c305-4690-8681-186b496c9988"
+      }
     }
   }
 }

@@ -91,7 +91,7 @@ export default function AddServiceScreen() {
           <Ionicons name="arrow-back" size={24} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.title}>Create Profile</Text>
-        <Text style={styles.subtitle}>Offer your skills to the campus</Text>
+        <Text style={styles.subtitle}>Offer your skills to the Orbito</Text>
       </View>
 
       <View style={styles.form}>

@@ -100,7 +100,7 @@ export default function AddProductScreen() {
           </TouchableOpacity>
           <View>
             <Text style={styles.title}>Sell an Item</Text>
-            <Text style={styles.subtitle}>Campus Marketplace</Text>
+            <Text style={styles.subtitle}> Orbito Marketplace</Text>
           </View>
         </View>
 

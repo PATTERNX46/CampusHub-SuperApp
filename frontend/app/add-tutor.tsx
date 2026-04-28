@@ -36,7 +36,8 @@ export default function AddTutorScreen() {
   };
 
   const handleCreateProfile = async () => {
-    if (!name || !subjects || !experience || !pricing || !availability) {
+    // 🛑 ফিক্স: !experience টা এখান থেকে সরিয়ে দিলাম, কারণ ইনপুট বক্স একটাই!
+    if (!name || !subjects || !pricing || !availability) {
       Alert.alert('Error', 'Please fill all mandatory fields!');
       return;
     }
@@ -64,7 +65,7 @@ export default function AddTutorScreen() {
         name,
         subjects: subjectsArray,
         mode,
-        experience,
+        experience: availability, // 🛑 ফিক্স: ব্যাকএন্ডের জন্য availability-র লেখাই experience-এ পাঠিয়ে দিলাম
         pricing: Number(pricing),
         pricingType,
         availability,

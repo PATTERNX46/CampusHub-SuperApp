@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // WARNING: Change this to your computer's Wi-Fi IP address!
 // Example: 'http://192.168.29.15:5000/api'
-const API_URL = 'http://10.13.255.24:5000/api'; 
+const API_URL = 'https://campushub-superapp.onrender.com/api'; 
 
 const api = axios.create({
   baseURL: API_URL,
