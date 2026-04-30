@@ -4,8 +4,9 @@ const sendEmail = async (options) => {
   // 1. Create a transporter (Setup for Gmail here, but you can use SendGrid/Mailgun)
  const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // 465 পোর্টের জন্য true
+    port: 587,
+    secure: false,
+    requireTLS: true, 
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -18,7 +19,7 @@ const sendEmail = async (options) => {
 
   // 2. Define the email options
   const mailOptions = {
-    from: ' Orbito<noreply@Orbito.com>',
+    from: `"Orbito App" <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
     text: options.message,
