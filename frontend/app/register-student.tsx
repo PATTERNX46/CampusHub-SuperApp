@@ -3,35 +3,58 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 import api from '../services/api';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth'; // 🚀 [NEW] Firebase ইমপোর্ট করা হলো
 
 export default function RegisterStudentScreen() {
   const router = useRouter();
-  // ব্যাকএন্ডের লজিক অনুযায়ী ডাটা
   const [form, setForm] = useState({ 
     name: '', phone: '', email: '', password: '', isStudent: true, roles: ['student'] 
   });
+
+  const [isLoading, setIsLoading] = useState(false); // 🚀 [NEW] Loading স্টেট অ্যাড করা হলো
 
  const handleRegister = async () => {
     if (!form.name || !form.phone || !form.email || !form.password) {
       return Alert.alert('Error', 'Please fill all the fields');
     }
 
+    setIsLoading(true);
+
     try {
+      // 🚀 [NEW] ১. ব্যাকএন্ডে কল
       const res = await api.post('/auth/register', form);
-      // 👇 এখন ওটিপি পেজে যাবে এবং সাথে userId নিয়ে যাবে
-      Alert.alert('Success', 'Check your email for OTP!', [
-        { 
-          text: 'OK', 
-          onPress: () => router.push({
-            pathname: '/(auth)/verify-otp',
-            params: { userId: res.data.userId } // ব্যাকএন্ড থেকে আসা আইডি
-          }) 
-        }
-      ]);
+      
+      // 🚀 [NEW] ২. Firebase দিয়ে ফোনে OTP পাঠানো
+      try {
+        const formattedPhone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
+        const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+        
+        setIsLoading(false);
+
+        Alert.alert('Success', 'Check your phone for OTP!', [
+          { 
+            text: 'OK', 
+            onPress: () => router.push({
+              pathname: '/(auth)/verify-otp',
+              params: { 
+                userId: res.data.userId,
+                firebaseVerificationId: confirmation.verificationId // 🚀 [NEW]
+              }
+            }) 
+          }
+        ]);
+      } catch (firebaseError: any) {
+        setIsLoading(false);
+        console.error("Firebase OTP Error:", firebaseError);
+        Alert.alert('SMS Failed', 'Could not send OTP to your phone.');
+      }
+
     } catch (error: any) {
+      setIsLoading(false);
       Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong');
     }
   };
+
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -48,12 +71,18 @@ export default function RegisterStudentScreen() {
         <View style={styles.inputContainer}>
           <TextInput style={styles.input} placeholder="Full Name" onChangeText={t => setForm({...form, name: t})} />
           <TextInput style={styles.input} placeholder="Institute Email (e.g. @rcciit.org)" onChangeText={t => setForm({...form, email: t})} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} placeholder="Phone Number" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Phone Number (e.g. 9876543210)" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" />
           <TextInput style={styles.input} placeholder="Password" onChangeText={t => setForm({...form, password: t})} secureTextEntry />
         </View>
 
-        <TouchableOpacity style={styles.btn} onPress={handleRegister}>
-          <Text style={styles.btnText}>Verify & Register</Text>
+        <TouchableOpacity 
+          style={[styles.btn, isLoading && { opacity: 0.6 }]} 
+          onPress={handleRegister}
+          disabled={isLoading}
+        >
+          <Text style={styles.btnText}>
+            {isLoading ? "Please Wait..." : "Verify & Register"}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

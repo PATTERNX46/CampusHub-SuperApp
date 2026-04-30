@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.rajdchatteejee.frontend"
+      "package": "com.rajdchatteejee.frontend",
+      "googleServicesFile": "./google-services.json" 
     },
     "web": {
       "output": "static",

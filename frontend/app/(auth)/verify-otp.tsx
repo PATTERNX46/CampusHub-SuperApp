@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import auth from '@react-native-firebase/auth'; // 🚀 [NEW] Firebase ইমপোর্ট করা হলো
 
 export default function VerifyOTPScreen() {
-  const { userId } = useLocalSearchParams();
+  // 🚀 [NEW] আগের userId-এর সাথে firebaseVerificationId-ও রিসিভ করা হচ্ছে
+  const { userId, firebaseVerificationId } = useLocalSearchParams();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const { setAndSaveUser } = useAuth();
@@ -16,12 +18,25 @@ export default function VerifyOTPScreen() {
       return;
     }
     setLoading(true);
+    
     try {
-      const res = await api.post('/auth/verify-otp', { userId, otp });
-      await setAndSaveUser(res.data);
+      // 🚀 [NEW] লজিক: যদি Firebase থেকে SMS গিয়ে থাকে, তাহলে আগে ফোনের OTP মেলাবে
+      if (firebaseVerificationId) {
+        const credential = auth.PhoneAuthProvider.credential(firebaseVerificationId as string, otp);
+        await auth().signInWithCredential(credential); // Firebase মেলাচ্ছে
+        
+        // Firebase সাকসেস হলে ব্যাকএন্ডকে একটা গ্রিন সিগন্যাল (firebaseVerified: true) পাঠানো হচ্ছে
+        const res = await api.post('/auth/verify-otp', { userId, otp, firebaseVerified: true });
+        await setAndSaveUser(res.data);
+      } 
+      // 🚀 [OLD] আর যদি ইমেইল থেকে আসে, তাহলে তোমার আগের লজিকটাই কাজ করবে (কোনো চেঞ্জ নেই)
+      else {
+        const res = await api.post('/auth/verify-otp', { userId, otp });
+        await setAndSaveUser(res.data);
+      }
       // সাকসেস হলে AuthContext নিজে থেকেই ড্যাশবোর্ডে নিয়ে যাবে
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Verification failed');
+      Alert.alert('Error', error.response?.data?.message || 'Verification failed. Invalid OTP.');
     } finally {
       setLoading(false);
     }
@@ -31,8 +46,9 @@ export default function VerifyOTPScreen() {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.header}>
-          <Text style={styles.title}>Verify Email</Text>
-          <Text style={styles.subtitle}>Enter the 6-digit code sent to your email</Text>
+          {/* তোমার আগের UI একদম সেম রাখা হয়েছে */}
+          <Text style={styles.title}>Verify Account</Text>
+          <Text style={styles.subtitle}>Enter the 6-digit code sent to you</Text>
         </View>
 
         <View style={styles.form}>

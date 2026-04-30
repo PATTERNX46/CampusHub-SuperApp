@@ -92,15 +92,25 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// ২. Verify OTP
+// ২. Verify OTP (🚀 এখানে Dual Verification অ্যাড করা হলো)
 exports.verifyOTP = async (req, res) => {
-  const { userId, otp } = req.body;
+  // ফ্রন্টএন্ড থেকে firebaseVerified সিগন্যালটা রিসিভ করা হচ্ছে
+  const { userId, otp, firebaseVerified } = req.body;
 
   try {
     const user = await User.findById(userId);
 
-    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    // 🚀 [NEW LOGIC]: Dual Verification Magic
+    // যদি ফ্রন্টএন্ড থেকে firebaseVerified: true আসে (মানে ফোন ভেরিফাই হয়ে গেছে), তাহলে ডেটাবেস আর OTP মেলাবে না!
+    if (!firebaseVerified) {
+      // আর যদি firebaseVerified না আসে, তাহলে ইমেইলের জন্য আগের মতোই ডেটাবেসের OTP মেলাবে
+      if (user.otp !== otp || user.otpExpires < Date.now()) {
+        return res.status(400).json({ message: 'Invalid or expired OTP' });
+      }
     }
 
     user.isVerified = true;
@@ -114,9 +124,9 @@ exports.verifyOTP = async (req, res) => {
       email: user.email,
       isStudent: user.isStudent,
       roles: user.roles,
-      adminMessage: user.adminMessage, // 🚀 এখানে অ্যাড করা হলো
+      adminMessage: user.adminMessage,
       token: generateToken(user._id),
-      message: 'Email verified successfully!'
+      message: firebaseVerified ? 'Phone verified successfully!' : 'Email verified successfully!'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -138,7 +148,7 @@ exports.loginUser = async (req, res) => {
         isStudent: user.isStudent,
         instituteEmail: user.instituteEmail,
         roles: user.roles,
-        adminMessage: user.adminMessage, // 🚀 এখানেও অ্যাড করা হলো
+        adminMessage: user.adminMessage,
         token: generateToken(user._id),
       });
     } else {

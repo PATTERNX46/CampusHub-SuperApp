@@ -3,16 +3,16 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 import api from '../services/api';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth'; // 🚀 [NEW] Firebase ইমপোর্ট করা হলো
 
 export default function RegisterNormalScreen() {
   const router = useRouter();
-  const { role } = useLocalSearchParams(); // Role Selection পেজ থেকে রোলটা এখানে আসবে
+  const { role } = useLocalSearchParams(); 
   
   const [form, setForm] = useState({ 
     name: '', phone: '', email: '', age: '', gender: '', password: '', isStudent: false, roles: [role || 'user'] 
   });
 
-  // 🚀 [NEW] Loading স্টেট অ্যাড করা হলো (এটার জন্যই লাল দাগ আসছিল)
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -20,27 +20,41 @@ export default function RegisterNormalScreen() {
       return Alert.alert('Error', 'Please fill all the fields');
     }
 
-    // 🚀 [NEW] API কলের আগে লোডিং শুরু হচ্ছে
     setIsLoading(true);
 
     try {
+      // 🚀 [NEW] ১. প্রথমে ব্যাকএন্ডে রিকোয়েস্ট পাঠানো হচ্ছে (যাতে ডেটাবেসে ইউজার সেভ হয়)
       const res = await api.post('/auth/register', form);
       
-      // 🚀 [NEW] API কল সাকসেস হলে লোডিং বন্ধ হচ্ছে
-      setIsLoading(false);
+      // 🚀 [NEW] ২. ব্যাকএন্ড সফল হলে, এবার Firebase দিয়ে ফোনে OTP পাঠানো হচ্ছে
+      try {
+        // Firebase-এর নিয়ম অনুযায়ী ফোন নম্বরের আগে +91 (Country Code) থাকা বাধ্যতামূলক
+        const formattedPhone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
+        
+        const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+        
+        setIsLoading(false);
 
-      // 👇 এখানেও ওটিপি পেজে পাঠানোর লজিক (আগের মতোই আছে)
-      Alert.alert('Success', 'Account Registered! Verify your OTP.', [
-        { 
-          text: 'OK', 
-          onPress: () => router.push({
-            pathname: '/(auth)/verify-otp',
-            params: { userId: res.data.userId }
-          }) 
-        }
-      ]);
+        Alert.alert('Success', 'Account Registered! Check your Phone for OTP.', [
+          { 
+            text: 'OK', 
+            onPress: () => router.push({
+              pathname: '/(auth)/verify-otp',
+              params: { 
+                userId: res.data.userId,
+                // 🚀 [NEW] Firebase-এর confirmation অবজেক্টটা পরের পেজে পাঠানো হচ্ছে ভেরিফাইয়ের জন্য
+                firebaseVerificationId: confirmation.verificationId 
+              }
+            }) 
+          }
+        ]);
+      } catch (firebaseError: any) {
+        setIsLoading(false);
+        console.error("Firebase OTP Error:", firebaseError);
+        Alert.alert('SMS Failed', 'Could not send OTP to your phone. But account is created in database.');
+      }
+
     } catch (error: any) {
-      // 🚀 [NEW] এরর খেলেও লোডিং বন্ধ করে দেওয়া হচ্ছে যাতে বাটন আটকে না থাকে
       setIsLoading(false);
       Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong');
     }
@@ -62,9 +76,8 @@ export default function RegisterNormalScreen() {
         <View style={styles.inputContainer}>
           <TextInput style={styles.input} placeholder="Full Name" onChangeText={t => setForm({...form, name: t})} />
           <TextInput style={styles.input} placeholder="Email" onChangeText={t => setForm({...form, email: t})} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} placeholder="Phone Number" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Phone Number (e.g. 9876543210)" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" />
           
-          {/* Age & Gender in one row */}
           <View style={{flexDirection: 'row', gap: 10}}>
             <TextInput style={[styles.input, {flex: 1}]} placeholder="Age" onChangeText={t => setForm({...form, age: t})} keyboardType="numeric" />
             <TextInput style={[styles.input, {flex: 1}]} placeholder="Gender (M/F)" onChangeText={t => setForm({...form, gender: t})} />
@@ -73,11 +86,10 @@ export default function RegisterNormalScreen() {
           <TextInput style={styles.input} placeholder="Password" onChangeText={t => setForm({...form, password: t})} secureTextEntry />
         </View>
 
-        {/* 🚀 [NEW] বাটনের কোড আপডেট করা হলো */}
         <TouchableOpacity 
           style={[styles.btn, isLoading && { opacity: 0.6 }]} 
           onPress={handleRegister}
-          disabled={isLoading} // 👈 এই লাইনটাই ডাবল-ক্লিক ব্লক করবে
+          disabled={isLoading} 
         >
           <Text style={styles.btnText}>
             {isLoading ? "Please Wait..." : "Register Now"}

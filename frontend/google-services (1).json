@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "787202736168",
+    "project_id": "orbito-e97d9",
+    "storage_bucket": "orbito-e97d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:787202736168:android:761466dd3686d4bf7af51d",
+        "android_client_info": {
+          "package_name": "com.rajdchatteejee.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCj0SbN6dkjvkCr1gJIvSuW0hNeXU4o710"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
