@@ -62,6 +62,7 @@ exports.registerUser = async (req, res) => {
     });
 
    // ইমেইল পাঠানো
+  // ইমেইল পাঠানো
     try {
       await sendEmail({
         email: user.email,
@@ -70,11 +71,12 @@ exports.registerUser = async (req, res) => {
       });
       res.status(201).json({ message: 'OTP sent to email', userId: user._id });
     } catch (err) {
-      console.log("Email Sending Error on Live Server:", err);
+      console.log("🚨 ALARM! NODEMAILER ERROR MESSAGE:", err.message);
       
-      // 🚀 [NEW FIX]: ইমেইল পাঠাতে ফেল করলে, ডেটাবেস থেকে অর্ধেক তৈরি হওয়া ইউজারটাকে ডিলিট করে দাও! 
-      // তাহলে আর সে লগইন করতে পারবে না এবং আবার ফ্রেশ রেজিস্ট্রেশন করতে পারবে।
-      await User.findByIdAndDelete(user._id); 
+      // 🚀 ম্যাজিক লাইন: ইমেইল না গেলে ডেটাবেস থেকে ইউজার ডিলিট হয়ে যাবে!
+      if (user && user._id) {
+          await User.findByIdAndDelete(user._id); 
+      }
       
       return res.status(500).json({ message: 'Email could not be sent. Registration cancelled.' });
     }

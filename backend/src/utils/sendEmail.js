@@ -14,7 +14,8 @@ const sendEmail = async (options) => {
     tls: {
       // 🚀 লাইভ সার্ভারের SSL ইস্যু সলভ করার জন্য এটা মাস্ট
       rejectUnauthorized: false 
-    }
+    },
+    family: 4
   });
 
   // 2. Define the email options
