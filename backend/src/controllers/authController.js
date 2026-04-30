@@ -61,19 +61,22 @@ exports.registerUser = async (req, res) => {
       otp, otpExpires
     });
 
-    // ইমেইল পাঠানো
+   // ইমেইল পাঠানো
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Your OTP for Orbito  App',
+        subject: 'Your OTP for Orbito App',
         message: `Your OTP is ${otp}. It will expire in 10 minutes.`
       });
       res.status(201).json({ message: 'OTP sent to email', userId: user._id });
     } catch (err) {
-      user.otp = undefined;
-      user.otpExpires = undefined;
-      await user.save();
-      return res.status(500).json({ message: 'Email could not be sent' });
+      console.log("Email Sending Error on Live Server:", err);
+      
+      // 🚀 [NEW FIX]: ইমেইল পাঠাতে ফেল করলে, ডেটাবেস থেকে অর্ধেক তৈরি হওয়া ইউজারটাকে ডিলিট করে দাও! 
+      // তাহলে আর সে লগইন করতে পারবে না এবং আবার ফ্রেশ রেজিস্ট্রেশন করতে পারবে।
+      await User.findByIdAndDelete(user._id); 
+      
+      return res.status(500).json({ message: 'Email could not be sent. Registration cancelled.' });
     }
   } catch (error) {
     // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শুরু] 🚀🚀🚀
