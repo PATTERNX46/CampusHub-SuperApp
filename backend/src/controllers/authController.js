@@ -2,6 +2,10 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 const generateOTP = require('../utils/generateOTP');
+const twilio = require('twilio'); // 🚀 Twilio ইমপোর্ট করা হলো
+
+// Twilio Setup
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // টোকেন বানানোর ফাংশন
 const generateToken = (id) => {
@@ -10,48 +14,31 @@ const generateToken = (id) => {
 
 // ১. Register User
 exports.registerUser = async (req, res) => {
-  const { name, phone, email, password, age, gender, isStudent, instituteEmail, roles } = req.body;
+  // 🚀 otpMethod রিসিভ করা হচ্ছে ফ্রন্টএন্ড থেকে ('phone' অথবা 'email')
+  const { name, phone, email, password, age, gender, isStudent, instituteEmail, roles, otpMethod } = req.body;
 
   try {
-    // 👇 [NEW LOGIC] Strict Student Email Verification
-    // 👇 [NEW LOGIC] Ultimate Global Student Email Verification
+    // 👇 [OLD LOGIC] Strict Student Email Verification (তোমার আগের কোড একদম সেম আছে)
     if (roles && roles.includes('student')) {
       const userEmail = email.toLowerCase();
-      
-      // পৃথিবীর প্রায় সব কলেজ এবং তোমাদের কলেজের সব ডোমেইন লিস্ট
       const validCollegeDomains = [
-        '.ac.in',                // ভারতের বেশিরভাগ কলেজ
-        '.edu.in',               // ভারতের এডুকেশনাল ইনস্টিটিউট
-        '.edu',                  // গ্লোবাল এডুকেশনাল ইনস্টিটিউট
-        '.ac.uk',                // ইউকে (UK) এর কলেজ
-        '.ac.bd',                // বাংলাদেশের কলেজ
-        '.edu.bd',               // বাংলাদেশের এডুকেশনাল ইনস্টিটিউট
-        '@rccinstitute.org',     // তোমাদের BCA/BSc ডোমেইন
-        '@rccinstitute.org.in',  // তোমাদের অল্টারনেট ডোমেইন
-        '@rcciit.org.in'         // 👈 [NEW] তোমাদের CSE/BTech ডোমেইন
+        '.ac.in', '.edu.in', '.edu', '.ac.uk', '.ac.bd', '.edu.bd',
+        '@rccinstitute.org', '@rccinstitute.org.in', '@rcciit.org.in' 
       ];
-      
-      // চেক করছে ইউজারের ইমেইলটা ওপরের লিস্টের কোনো একটার সাথে মিলছে কি না
       const isInstituteEmail = validCollegeDomains.some(domain => userEmail.endsWith(domain));
-      
       if (!isInstituteEmail) {
-        return res.status(400).json({ 
-          message: "Access Denied! Students must use a valid college/institute email ID (e.g., ends with .ac.in, .edu.in, or @rcciit.org.in)" 
-        });
+        return res.status(400).json({ message: "Access Denied! Students must use a valid college/institute email ID" });
       }
     }
-    // 👆 [NEW LOGIC ENDS]
-    // 👆 [NEW LOGIC ENDS]
+    // 👆 [OLD LOGIC ENDS]
 
-    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শুরু] 🚀🚀🚀
-    // আগে শুধু email চেক হচ্ছিল, এখন email এবং phone দুটোই চেক হচ্ছে যাতে duplicate না হয়
+    // 🚀🚀🚀 [ডুপ্লিকেট চেকিং - তোমার আগের কোড সেম আছে] 🚀🚀🚀
     const userExists = await User.findOne({ $or: [{ email }, { phone }] });
     if (userExists) {
         if (userExists.email === email) return res.status(400).json({ message: 'User with this email already exists' });
         if (userExists.phone === phone) return res.status(400).json({ message: 'User with this phone number already exists' });
         return res.status(400).json({ message: 'User already exists' });
     }
-    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শেষ] 🚀🚀🚀
 
     const otp = generateOTP();
     const otpExpires = Date.now() + 10 * 60 * 1000; // ১০ মিনিট ভ্যালিড
@@ -61,41 +48,46 @@ exports.registerUser = async (req, res) => {
       otp, otpExpires
     });
 
-   // ইমেইল পাঠানো
-  // ইমেইল পাঠানো
     try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Your OTP for Orbito App',
-        message: `Your OTP is ${otp}. It will expire in 10 minutes.`
-      });
-      res.status(201).json({ message: 'OTP sent to email', userId: user._id });
+      // 🚀🚀🚀 [NEW LOGIC: Twilio vs Brevo Choice] 🚀🚀🚀
+      if (otpMethod === 'phone') {
+        // Twilio দিয়ে SMS পাঠানো
+        const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
+        await twilioClient.messages.create({
+          body: `Your Orbito App OTP is ${otp}. It will expire in 10 minutes.`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: formattedPhone
+        });
+        res.status(201).json({ message: 'OTP sent to phone via Twilio', userId: user._id });
+      } else {
+        // Brevo দিয়ে ইমেইল পাঠানো
+        await sendEmail({
+          email: user.email,
+          subject: 'Your OTP for Orbito App',
+          message: `Your OTP is ${otp}. It will expire in 10 minutes.`
+        });
+        res.status(201).json({ message: 'OTP sent to email via Brevo', userId: user._id });
+      }
     } catch (err) {
-      console.log("🚨 ALARM! NODEMAILER ERROR MESSAGE:", err.message);
+      console.log("🚨 ALARM! OTP SENDING ERROR MESSAGE:", err.message);
       
-      // 🚀 ম্যাজিক লাইন: ইমেইল না গেলে ডেটাবেস থেকে ইউজার ডিলিট হয়ে যাবে!
+      // 🚀 ইমেইল/SMS না গেলে ডেটাবেস থেকে ইউজার ডিলিট হয়ে যাবে!
       if (user && user._id) {
           await User.findByIdAndDelete(user._id); 
       }
-      
-      return res.status(500).json({ message: 'Email could not be sent. Registration cancelled.' });
+      return res.status(500).json({ message: 'OTP could not be sent. Registration cancelled.' });
     }
   } catch (error) {
-    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শুরু] 🚀🚀🚀
-    // যদি কেউ বাটনে ডাবল ক্লিক করে ফেলে, তাহলে মঙ্গোডিবি যাতে ক্র্যাশ না করে
     if (error.code === 11000) {
         return res.status(400).json({ message: 'Database Error: Duplicate Email or Phone found!' });
     }
-    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শেষ] 🚀🚀🚀
-    
     res.status(500).json({ message: error.message });
   }
 };
 
-// ২. Verify OTP (🚀 এখানে Dual Verification অ্যাড করা হলো)
+// ২. Verify OTP (🚀 অনেক সহজ হয়ে গেল)
 exports.verifyOTP = async (req, res) => {
-  // ফ্রন্টএন্ড থেকে firebaseVerified সিগন্যালটা রিসিভ করা হচ্ছে
-  const { userId, otp, firebaseVerified } = req.body;
+  const { userId, otp } = req.body;
 
   try {
     const user = await User.findById(userId);
@@ -104,13 +96,9 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ message: 'User not found' });
     }
 
-    // 🚀 [NEW LOGIC]: Dual Verification Magic
-    // যদি ফ্রন্টএন্ড থেকে firebaseVerified: true আসে (মানে ফোন ভেরিফাই হয়ে গেছে), তাহলে ডেটাবেস আর OTP মেলাবে না!
-    if (!firebaseVerified) {
-      // আর যদি firebaseVerified না আসে, তাহলে ইমেইলের জন্য আগের মতোই ডেটাবেসের OTP মেলাবে
-      if (user.otp !== otp || user.otpExpires < Date.now()) {
-        return res.status(400).json({ message: 'Invalid or expired OTP' });
-      }
+    // 🚀 যেহেতু এখন সব OTP (Phone + Email) আমাদের ডেটাবেসেই সেভ হচ্ছে, তাই Firebase-এর কোনো কন্ডিশন আর লাগবে না!
+    if (user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
     user.isVerified = true;
@@ -126,20 +114,18 @@ exports.verifyOTP = async (req, res) => {
       roles: user.roles,
       adminMessage: user.adminMessage,
       token: generateToken(user._id),
-      message: firebaseVerified ? 'Phone verified successfully!' : 'Email verified successfully!'
+      message: 'Account verified successfully!'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ৩. Login User
+// ৩. Login User (তোমার আগের কোড সেম আছে)
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email });
-
     if (user && (await user.matchPassword(password))) {
       res.json({
         _id: user._id,
