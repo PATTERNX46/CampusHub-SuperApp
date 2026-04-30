@@ -15,36 +15,43 @@ exports.registerUser = async (req, res) => {
   try {
     // 👇 [NEW LOGIC] Strict Student Email Verification
     // 👇 [NEW LOGIC] Ultimate Global Student Email Verification
-if (roles && roles.includes('student')) {
-  const userEmail = email.toLowerCase();
-  
-  // পৃথিবীর প্রায় সব কলেজ এবং তোমাদের কলেজের সব ডোমেইন লিস্ট
-  const validCollegeDomains = [
-    '.ac.in',                // ভারতের বেশিরভাগ কলেজ
-    '.edu.in',               // ভারতের এডুকেশনাল ইনস্টিটিউট
-    '.edu',                  // গ্লোবাল এডুকেশনাল ইনস্টিটিউট
-    '.ac.uk',                // ইউকে (UK) এর কলেজ
-    '.ac.bd',                // বাংলাদেশের কলেজ
-    '.edu.bd',               // বাংলাদেশের এডুকেশনাল ইনস্টিটিউট
-    '@rccinstitute.org',     // তোমাদের BCA/BSc ডোমেইন
-    '@rccinstitute.org.in',  // তোমাদের অল্টারনেট ডোমেইন
-    '@rcciit.org.in'         // 👈 [NEW] তোমাদের CSE/BTech ডোমেইন
-  ];
-  
-  // চেক করছে ইউজারের ইমেইলটা ওপরের লিস্টের কোনো একটার সাথে মিলছে কি না
-  const isInstituteEmail = validCollegeDomains.some(domain => userEmail.endsWith(domain));
-  
-  if (!isInstituteEmail) {
-    return res.status(400).json({ 
-      message: "Access Denied! Students must use a valid college/institute email ID (e.g., ends with .ac.in, .edu.in, or @rcciit.org.in)" 
-    });
-  }
-}
-// 👆 [NEW LOGIC ENDS]
+    if (roles && roles.includes('student')) {
+      const userEmail = email.toLowerCase();
+      
+      // পৃথিবীর প্রায় সব কলেজ এবং তোমাদের কলেজের সব ডোমেইন লিস্ট
+      const validCollegeDomains = [
+        '.ac.in',                // ভারতের বেশিরভাগ কলেজ
+        '.edu.in',               // ভারতের এডুকেশনাল ইনস্টিটিউট
+        '.edu',                  // গ্লোবাল এডুকেশনাল ইনস্টিটিউট
+        '.ac.uk',                // ইউকে (UK) এর কলেজ
+        '.ac.bd',                // বাংলাদেশের কলেজ
+        '.edu.bd',               // বাংলাদেশের এডুকেশনাল ইনস্টিটিউট
+        '@rccinstitute.org',     // তোমাদের BCA/BSc ডোমেইন
+        '@rccinstitute.org.in',  // তোমাদের অল্টারনেট ডোমেইন
+        '@rcciit.org.in'         // 👈 [NEW] তোমাদের CSE/BTech ডোমেইন
+      ];
+      
+      // চেক করছে ইউজারের ইমেইলটা ওপরের লিস্টের কোনো একটার সাথে মিলছে কি না
+      const isInstituteEmail = validCollegeDomains.some(domain => userEmail.endsWith(domain));
+      
+      if (!isInstituteEmail) {
+        return res.status(400).json({ 
+          message: "Access Denied! Students must use a valid college/institute email ID (e.g., ends with .ac.in, .edu.in, or @rcciit.org.in)" 
+        });
+      }
+    }
+    // 👆 [NEW LOGIC ENDS]
     // 👆 [NEW LOGIC ENDS]
 
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
+    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শুরু] 🚀🚀🚀
+    // আগে শুধু email চেক হচ্ছিল, এখন email এবং phone দুটোই চেক হচ্ছে যাতে duplicate না হয়
+    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    if (userExists) {
+        if (userExists.email === email) return res.status(400).json({ message: 'User with this email already exists' });
+        if (userExists.phone === phone) return res.status(400).json({ message: 'User with this phone number already exists' });
+        return res.status(400).json({ message: 'User already exists' });
+    }
+    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শেষ] 🚀🚀🚀
 
     const otp = generateOTP();
     const otpExpires = Date.now() + 10 * 60 * 1000; // ১০ মিনিট ভ্যালিড
@@ -69,6 +76,13 @@ if (roles && roles.includes('student')) {
       return res.status(500).json({ message: 'Email could not be sent' });
     }
   } catch (error) {
+    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শুরু] 🚀🚀🚀
+    // যদি কেউ বাটনে ডাবল ক্লিক করে ফেলে, তাহলে মঙ্গোডিবি যাতে ক্র্যাশ না করে
+    if (error.code === 11000) {
+        return res.status(400).json({ message: 'Database Error: Duplicate Email or Phone found!' });
+    }
+    // 🚀🚀🚀 [আমার অ্যাড করা নতুন কোড শেষ] 🚀🚀🚀
+    
     res.status(500).json({ message: error.message });
   }
 };

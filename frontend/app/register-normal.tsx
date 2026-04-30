@@ -12,14 +12,24 @@ export default function RegisterNormalScreen() {
     name: '', phone: '', email: '', age: '', gender: '', password: '', isStudent: false, roles: [role || 'user'] 
   });
 
+  // 🚀 [NEW] Loading স্টেট অ্যাড করা হলো (এটার জন্যই লাল দাগ আসছিল)
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleRegister = async () => {
     if (!form.name || !form.phone || !form.email || !form.password || !form.age || !form.gender) {
       return Alert.alert('Error', 'Please fill all the fields');
     }
 
+    // 🚀 [NEW] API কলের আগে লোডিং শুরু হচ্ছে
+    setIsLoading(true);
+
     try {
       const res = await api.post('/auth/register', form);
-      // 👇 এখানেও ওটিপি পেজে পাঠানোর লজিক
+      
+      // 🚀 [NEW] API কল সাকসেস হলে লোডিং বন্ধ হচ্ছে
+      setIsLoading(false);
+
+      // 👇 এখানেও ওটিপি পেজে পাঠানোর লজিক (আগের মতোই আছে)
       Alert.alert('Success', 'Account Registered! Verify your OTP.', [
         { 
           text: 'OK', 
@@ -30,6 +40,8 @@ export default function RegisterNormalScreen() {
         }
       ]);
     } catch (error: any) {
+      // 🚀 [NEW] এরর খেলেও লোডিং বন্ধ করে দেওয়া হচ্ছে যাতে বাটন আটকে না থাকে
+      setIsLoading(false);
       Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong');
     }
   };
@@ -61,8 +73,15 @@ export default function RegisterNormalScreen() {
           <TextInput style={styles.input} placeholder="Password" onChangeText={t => setForm({...form, password: t})} secureTextEntry />
         </View>
 
-        <TouchableOpacity style={styles.btn} onPress={handleRegister}>
-          <Text style={styles.btnText}>Register Now</Text>
+        {/* 🚀 [NEW] বাটনের কোড আপডেট করা হলো */}
+        <TouchableOpacity 
+          style={[styles.btn, isLoading && { opacity: 0.6 }]} 
+          onPress={handleRegister}
+          disabled={isLoading} // 👈 এই লাইনটাই ডাবল-ক্লিক ব্লক করবে
+        >
+          <Text style={styles.btnText}>
+            {isLoading ? "Please Wait..." : "Register Now"}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
