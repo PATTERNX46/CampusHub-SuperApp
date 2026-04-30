@@ -2,11 +2,17 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
   // 1. Create a transporter (Setup for Gmail here, but you can use SendGrid/Mailgun)
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
+ const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // 465 পোর্টের জন্য true
     auth: {
-      user: process.env.EMAIL_USER, // Your email
-      pass: process.env.EMAIL_PASS  // Your App Password (not your main password)
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      // 🚀 লাইভ সার্ভারের SSL ইস্যু সলভ করার জন্য এটা মাস্ট
+      rejectUnauthorized: false 
     }
   });
 
