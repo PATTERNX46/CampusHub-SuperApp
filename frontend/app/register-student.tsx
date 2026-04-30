@@ -3,17 +3,16 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 import api from '../services/api';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import auth from '@react-native-firebase/auth'; // 🚀 [NEW] Firebase ইমপোর্ট করা হলো
 
 export default function RegisterStudentScreen() {
   const router = useRouter();
   const [form, setForm] = useState({ 
     name: '', phone: '', email: '', password: '', isStudent: true, roles: ['student'] 
   });
+  const [otpMethod, setOtpMethod] = useState('phone');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false); // 🚀 [NEW] Loading স্টেট অ্যাড করা হলো
-
- const handleRegister = async () => {
+  const handleRegister = async () => {
     if (!form.name || !form.phone || !form.email || !form.password) {
       return Alert.alert('Error', 'Please fill all the fields');
     }
@@ -21,33 +20,22 @@ export default function RegisterStudentScreen() {
     setIsLoading(true);
 
     try {
-      // 🚀 [NEW] ১. ব্যাকএন্ডে কল
-      const res = await api.post('/auth/register', form);
+      // 🚀 ব্যাকএন্ডে কল করা হচ্ছে[cite: 6]
+      const res = await api.post('/auth/register', { ...form, otpMethod });
       
-      // 🚀 [NEW] ২. Firebase দিয়ে ফোনে OTP পাঠানো
-      try {
-        const formattedPhone = form.phone.startsWith('+91') ? form.phone : `+91${form.phone}`;
-        const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
-        
-        setIsLoading(false);
-
-        Alert.alert('Success', 'Check your phone for OTP!', [
-          { 
-            text: 'OK', 
-            onPress: () => router.push({
+      setIsLoading(false);
+      
+      Alert.alert(
+        'Success', 
+        `OTP sent to your ${otpMethod === 'phone' ? 'Phone' : 'Institute Email'}!`, 
+        [
+          { text: 'OK', onPress: () => router.push({
               pathname: '/(auth)/verify-otp',
-              params: { 
-                userId: res.data.userId,
-                firebaseVerificationId: confirmation.verificationId // 🚀 [NEW]
-              }
+              params: { userId: res.data.userId, method: otpMethod }
             }) 
           }
-        ]);
-      } catch (firebaseError: any) {
-        setIsLoading(false);
-        console.error("Firebase OTP Error:", firebaseError);
-        Alert.alert('SMS Failed', 'Could not send OTP to your phone.');
-      }
+        ]
+      );
 
     } catch (error: any) {
       setIsLoading(false);
@@ -62,27 +50,38 @@ export default function RegisterStudentScreen() {
       </TouchableOpacity>
 
       <View style={styles.card}>
-        <View style={styles.iconBox}>
-          <Ionicons name="school" size={40} color="#4361EE" />
-        </View>
+        <View style={styles.iconBox}><Ionicons name="school" size={40} color="#4361EE" /></View>
         <Text style={styles.title}>Student Portal</Text>
         <Text style={styles.subtitle}>Strictly for verified students only</Text>
 
         <View style={styles.inputContainer}>
           <TextInput style={styles.input} placeholder="Full Name" onChangeText={t => setForm({...form, name: t})} />
-          <TextInput style={styles.input} placeholder="Institute Email (e.g. @rcciit.org)" onChangeText={t => setForm({...form, email: t})} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} placeholder="Phone Number (e.g. 9876543210)" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Institute Email" onChangeText={t => setForm({...form, email: t})} autoCapitalize="none" keyboardType="email-address" />
+          
+          <View style={styles.phoneBox}>
+            <Text style={styles.prefix}>+91</Text>
+            <TextInput style={[styles.input, {flex: 1, marginBottom: 0, borderWidth: 0}]} placeholder="Phone Number" onChangeText={t => setForm({...form, phone: t})} keyboardType="numeric" maxLength={10} />
+          </View>
+          
           <TextInput style={styles.input} placeholder="Password" onChangeText={t => setForm({...form, password: t})} secureTextEntry />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.btn, isLoading && { opacity: 0.6 }]} 
-          onPress={handleRegister}
-          disabled={isLoading}
-        >
-          <Text style={styles.btnText}>
-            {isLoading ? "Please Wait..." : "Verify & Register"}
-          </Text>
+        <View style={styles.methodContainer}>
+          <Text style={styles.methodLabel}>Send OTP via:</Text>
+          <View style={styles.radioRow}>
+            <TouchableOpacity onPress={() => setOtpMethod('phone')} style={styles.radioBtn}>
+              <View style={otpMethod === 'phone' ? styles.radioSelected : styles.radioUnselected} />
+              <Text>Phone</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setOtpMethod('email')} style={styles.radioBtn}>
+              <View style={otpMethod === 'email' ? styles.radioSelected : styles.radioUnselected} />
+              <Text>Email</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity style={[styles.btn, isLoading && { opacity: 0.6 }]} onPress={handleRegister} disabled={isLoading}>
+          <Text style={styles.btnText}>{isLoading ? "Please Wait..." : "Verify & Register"}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -91,13 +90,21 @@ export default function RegisterStudentScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F4F7FE', paddingVertical: 40 },
-  backBtn: { position: 'absolute', top: 40, left: 20, width: 40, height: 40, backgroundColor: '#ffffff', borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 5, zIndex: 10 },
-  card: { width: '85%', backgroundColor: '#ffffff', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 12, shadowColor: '#4361EE', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20 },
+  backBtn: { position: 'absolute', top: 40, left: 20, width: 40, height: 40, backgroundColor: '#ffffff', borderRadius: 20, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  card: { width: '85%', backgroundColor: '#ffffff', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 12 },
   iconBox: { width: 80, height: 80, backgroundColor: '#EEF2FF', borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   title: { fontSize: 24, fontWeight: '900', color: '#1E293B', marginBottom: 5 },
   subtitle: { fontSize: 12, color: '#EF4444', marginBottom: 25, fontWeight: '700' },
-  inputContainer: { width: '100%', gap: 12, marginBottom: 20 },
+  inputContainer: { width: '100%', gap: 12, marginBottom: 10 },
   input: { backgroundColor: '#F8FAFC', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', fontSize: 15, color: '#1E293B' },
-  btn: { width: '100%', backgroundColor: '#4361EE', padding: 16, borderRadius: 12, alignItems: 'center', elevation: 5, shadowColor: '#4361EE', shadowOpacity: 0.4, shadowRadius: 8 },
-  btnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 }
+  phoneBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', paddingLeft: 15, marginBottom: 5 },
+  prefix: { fontSize: 15, fontWeight: 'bold', color: '#1E293B', marginRight: 5 },
+  methodContainer: { width: '100%', marginVertical: 15 },
+  methodLabel: { fontSize: 14, color: '#64748B', marginBottom: 8 },
+  radioRow: { flexDirection: 'row', gap: 20 },
+  radioBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  radioSelected: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#4361EE' },
+  radioUnselected: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#CBD5E1' },
+  btn: { width: '100%', backgroundColor: '#4361EE', padding: 16, borderRadius: 12, alignItems: 'center' },
+  btnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 16 }
 });
